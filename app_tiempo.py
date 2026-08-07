@@ -33,7 +33,7 @@ class TimeApp:
         lbl_title = ttk.Label(self.frame_v1, text="Hora Actual del Sistema", font=("Segoe UI", 14, "bold"))
         lbl_title.pack(pady=20)
 
-        self.lbl_time = ttk.Label(self.frame_v1, text="", font=("Segoe UI", 28, "bold"))
+        self.lbl_time = tk.Label(self.frame_v1, text="", font=("Segoe UI", 28, "bold"), fg="#007ACC")
         self.lbl_time.pack(pady=20)
 
         self.update_time()
