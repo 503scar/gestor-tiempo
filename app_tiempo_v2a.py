@@ -35,7 +35,7 @@ class TimeApp:
         format_frame = ttk.Frame(self.frame_v1)
         format_frame.pack(pady=5)
 
-        self.use_24h = tk.BooleanVar(value=True)
+        self.use_24h = tk.BooleanVar(value=False)
         ttk.Label(format_frame, text="Formato de hora:").pack(side='left', padx=(0, 10))
         ttk.Radiobutton(format_frame, text="24H", variable=self.use_24h, value=True, command=self.update_time).pack(side='left')
         ttk.Radiobutton(format_frame, text="12H", variable=self.use_24h, value=False, command=self.update_time).pack(side='left')
@@ -44,26 +44,36 @@ class TimeApp:
         self.lbl_time.pack(pady=(20, 5))
 
         self.lbl_full_date = ttk.Label(self.frame_v1, text="", font=("Segoe UI", 12))
-        self.lbl_full_date.pack(pady=(0, 5))
+        self.lbl_full_date.pack(pady=(0, 10))
 
-        self.calendar_frame = ttk.Frame(self.frame_v1)
-        self.calendar_frame.pack(pady=(0, 20))
-
-        self.calendar_month_label = ttk.Label(self.calendar_frame, text="", font=("Segoe UI", 10, "bold"))
-        self.calendar_month_label.grid(row=0, column=0, columnspan=7, pady=(0, 4))
-
-        day_names = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"]
-        for idx, name in enumerate(day_names):
-            ttk.Label(self.calendar_frame, text=name, font=("Segoe UI", 9, "bold"), width=3, anchor='center').grid(row=1, column=idx)
-
+        self.calendar_frames = []
         self.calendar_cells = []
-        for week in range(6):
-            row_cells = []
-            for col in range(7):
-                cell = tk.Label(self.calendar_frame, text="", font=("Segoe UI", 9), width=3, height=1, anchor='center', borderwidth=1, relief='ridge')
-                cell.grid(row=week + 2, column=col, padx=1, pady=1)
-                row_cells.append(cell)
-            self.calendar_cells.append(row_cells)
+
+        for title in ["Mes anterior", "Mes actual", "Mes siguiente"]:
+            section = ttk.Frame(self.frame_v1)
+            section.pack(pady=(0, 8), fill='x')
+
+            label = ttk.Label(section, text=title, font=("Segoe UI", 10, "bold"))
+            label.pack(pady=(0, 4))
+
+            grid_frame = ttk.Frame(section)
+            grid_frame.pack()
+
+            day_names = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"]
+            for idx, name in enumerate(day_names):
+                ttk.Label(grid_frame, text=name, font=("Segoe UI", 8, "bold"), width=4, anchor='center').grid(row=0, column=idx)
+
+            cells = []
+            for week in range(6):
+                row_cells = []
+                for col in range(7):
+                    cell = tk.Label(grid_frame, text="", font=("Segoe UI", 8), width=4, height=1, anchor='center', borderwidth=1, relief='ridge')
+                    cell.grid(row=week + 1, column=col, padx=0, pady=0)
+                    row_cells.append(cell)
+                cells.append(row_cells)
+
+            self.calendar_frames.append((label, cells))
+            self.calendar_cells.append(cells)
 
         self.update_time()
 
@@ -75,23 +85,40 @@ class TimeApp:
             current_time = now.strftime("%I:%M:%S %p")
 
         date_str = f"{now.strftime('%a').lower()}-{now.day}-{now.strftime('%b').lower()}-{now.strftime('%y')}"
-        month_label = f"{now.strftime('%B').capitalize()} {now.year}"
 
         self.lbl_time.config(text=current_time)
         self.lbl_full_date.config(text=date_str)
-        self.calendar_month_label.config(text=month_label)
 
-        month_days = calendar.Calendar(firstweekday=calendar.SUNDAY).monthdayscalendar(now.year, now.month)
-        for week_idx in range(6):
-            for col_idx in range(7):
-                day = month_days[week_idx][col_idx] if week_idx < len(month_days) else 0
-                label_text = str(day) if day != 0 else ""
-                cell = self.calendar_cells[week_idx][col_idx]
-                cell.config(text=label_text)
-                if day == now.day:
-                    cell.config(background="#cfeaff")
-                else:
-                    cell.config(background="SystemButtonFace")
+        months = []
+        prev_month = now.month - 1 if now.month > 1 else 12
+        prev_year = now.year if now.month > 1 else now.year - 1
+        next_month = now.month + 1 if now.month < 12 else 1
+        next_year = now.year if now.month < 12 else now.year + 1
+        months.append((prev_month, prev_year))
+        months.append((now.month, now.year))
+        months.append((next_month, next_year))
+
+        for idx, (month, year) in enumerate(months):
+            month_label = f"{calendar.month_name[month].capitalize()} {year}"
+            self.calendar_frames[idx][0].config(text=month_label)
+
+            month_days = calendar.Calendar(firstweekday=calendar.SUNDAY).monthdayscalendar(year, month)
+            weeks = len(month_days)
+            for week_idx in range(6):
+                row_visible = week_idx < weeks
+                for col_idx in range(7):
+                    day = month_days[week_idx][col_idx] if row_visible else 0
+                    label_text = str(day) if day != 0 else ""
+                    cell = self.calendar_cells[idx][week_idx][col_idx]
+                    cell.config(text=label_text)
+                    if year == now.year and month == now.month and day == now.day:
+                        cell.config(background="#cfeaff")
+                    else:
+                        cell.config(background="SystemButtonFace")
+                    if row_visible:
+                        cell.grid()
+                    else:
+                        cell.grid_remove()
 
         self.root.after(1000, self.update_time)
 
